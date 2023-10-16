@@ -5,6 +5,7 @@ Usage:
   sb.py  module create <module>
   sb.py  project create <groupId> <artifactId>
   sb.py  module delete <module>
+  sb.py  deps   add    [<db>] [<kv>] [<mq>]
 """
 
 from docopt import docopt
@@ -102,7 +103,7 @@ springboot2dependencyManage = [
 
 ]
 
-springboot2 = {
+springboot2deps = {
 
     "base": [
         {
@@ -137,7 +138,7 @@ springboot2 = {
         },
     ],
 
-    "mysql": [
+    "db": [
         {
             "groupId": "org.springframework.boot",
             "artifactId": "spring-boot-starter-jdbc",
@@ -347,13 +348,56 @@ def makeModule( artifactId, pwd ):
     os.chdir(oldPwd)
 
 
+def addDepsToModule( addSets ):
+    import xml.etree.ElementTree as ET
+    # 加载POM文件
+    tree = ET.parse('pom.xml')
+    ns = "http://maven.apache.org/POM/4.0.0"
+    ET.register_namespace('', ns)
+    root = tree.getroot()
+    packaging = root.find("{http://maven.apache.org/POM/4.0.0}packaging")
+    if packaging.text == "pom":
+        print("need in modules")
+        return
 
+    depSets = springboot2deps["base"]
+    if addSets.get("kv",False) :
+        depSets += springboot2deps["kv"]
 
+    if addSets.get("db",False) :
+        depSets += springboot2deps["db"]
+
+    if addSets.get("mq",False):
+        depSets += springboot2deps["mq"]
+
+    import xml.etree.ElementTree as ET
+    # 加载POM文件
+    tree = ET.parse('pom.xml')
+    ns = "http://maven.apache.org/POM/4.0.0"
+    ET.register_namespace('', ns)
+    root = tree.getroot()
+    dependencies = root.find("{http://maven.apache.org/POM/4.0.0}dependencies")
+    if dependencies == None:
+        dependencies = ET.Element('dependencies')
+        for dep in depSets:
+            # dependency
+            dependency =ET.Element('dependency')
+            groupId = ET.SubElement(dependency, 'groupId')
+            groupId.text = dep.get("groupId")
+            artifactId = ET.SubElement(dependency, 'artifactId')
+            artifactId.text = dep.get("artifactId")
+            dependencies.insert(0, dependency)
+
+    if len(depSets) > 0:
+        root.insert(3, dependencies)
+
+    pretty_xml(root, '\t', '\n')
+    tree.write('pom.xml', encoding="utf-8", xml_declaration=True)
 
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
-
+    print(arguments)
     cmd_root = os.getcwd()
 
     if arguments.get("module"):
@@ -363,6 +407,20 @@ if __name__ == '__main__':
     if arguments.get("project"):
         if arguments.get("create"):
             makeProject(arguments.get("<groupId>"), arguments.get("<artifactId>"))
+
+    if arguments.get("deps"):
+        if arguments.get("add"):
+            addSets = {}
+            if arguments.get("<db>") != None:
+                addSets["db"] = True
+            if arguments.get("<kv>") != None:
+                addSets["kv"] = True
+            if arguments.get("<mq>") != None:
+                addSets["mq"] = True
+            addDepsToModule(addSets)
+
+
+
 
 
 
