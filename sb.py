@@ -5,7 +5,8 @@ Usage:
   sb.py  module create <module>
   sb.py  project create <groupId> <artifactId>
   sb.py  module delete <module>
-  sb.py  deps   add    [<db>] [<kv>] [<mq>]
+  sb.py  deps   add  [<base>]  [<db>] [<kv>] [<mq>]
+  sb.py  path   init
 """
 
 from docopt import docopt
@@ -65,11 +66,6 @@ springboot2dependencyManage = [
         "version": "1.18.28"
     },
 
-    {
-        "groupId": "org.junit.jupiter",
-        "artifactId": "junit-jupiter-api",
-        "version": "5.3.1"
-    },
 
     {
         "groupId": "org.springframework.boot",
@@ -83,23 +79,6 @@ springboot2dependencyManage = [
         "version": "3.5.3.1"
     },
 
-    {
-        "groupId": "com.alibaba",
-        "artifactId": "druid-spring-boot-3-starter",
-        "version": "1.2.18"
-    },
-
-    {
-        "groupId": "org.mybatis",
-        "artifactId": "mybatis",
-        "version": "3.5.11"
-    },
-
-    {
-        "groupId": "mysql",
-        "artifactId": "mysql-connector-java",
-        "version": "8.0.25"
-    }
 
 ]
 
@@ -140,16 +119,12 @@ springboot2deps = {
 
     "db": [
         {
-            "groupId": "org.springframework.boot",
-            "artifactId": "spring-boot-starter-jdbc",
-        },
-        {
             "groupId": "org.mybatis",
             "artifactId": "mybatis",
         },
         {
-            "groupId": "com.alibaba",
-            "artifactId": "druid-spring-boot-3-starter",
+            "groupId": "org.springframework.boot",
+            "artifactId": "spring-boot-starter-jdbc",
         },
         {
             "groupId": "mysql",
@@ -356,11 +331,12 @@ def addDepsToModule( addSets ):
     ET.register_namespace('', ns)
     root = tree.getroot()
     packaging = root.find("{http://maven.apache.org/POM/4.0.0}packaging")
-    if packaging.text == "pom":
+    if packaging != None and packaging.text == "pom":
         print("need in modules")
         return
-
-    depSets = springboot2deps["base"]
+    depSets = []
+    if addSets.get("base", False):
+        depSets = springboot2deps["base"]
     if addSets.get("kv",False) :
         depSets += springboot2deps["kv"]
 
@@ -394,10 +370,38 @@ def addDepsToModule( addSets ):
     pretty_xml(root, '\t', '\n')
     tree.write('pom.xml', encoding="utf-8", xml_declaration=True)
 
+def pathInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+    artifactId = projectInfo["artifactId"]
+
+    pathList = ["src/main/java", "src/test/java"]
+    groupIdPath = groupId.split(".")
+
+    pathFullList = []
+
+    for p in pathList:
+        for gp in groupIdPath:
+            p = p + "/" + gp
+        pathFullList += [p]
+
+    pathFullList += [ "src/main/resources",  "src/test/resources" ]
+
+
+
+
+    for p in pathFullList:
+        if  not os.path.exists(pwd + "/" + p):
+            os.makedirs(pwd + "/" + p)
+
+
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
-    print(arguments)
     cmd_root = os.getcwd()
 
     if arguments.get("module"):
@@ -411,6 +415,8 @@ if __name__ == '__main__':
     if arguments.get("deps"):
         if arguments.get("add"):
             addSets = {}
+            if arguments.get("<base>") != None:
+                addSets["base"] = True
             if arguments.get("<db>") != None:
                 addSets["db"] = True
             if arguments.get("<kv>") != None:
@@ -419,31 +425,10 @@ if __name__ == '__main__':
                 addSets["mq"] = True
             addDepsToModule(addSets)
 
+    if arguments.get("path"):
+        if arguments.get("init"):
+            pathInit(cmd_root)
 
-
-
-
-
-    # os.chdir("springboot1")
-    # makeModule("common")
-    # os.chdir("springboot1")
-    # getProjectInfo()
-    # addSpringBootParent()
-
-
-
-
-
-# 1, 创建 module
-
-# 2, 删除 module
-
-# 3, 重命名 module
-
-# 4, module 新增依赖，同步新增到父项目。如果父项目已经声明依赖，则只新增子项目依赖。
-
-# 5，列出项目已使用依赖
-# 6，列出项目已声明的依赖
 
 
 
