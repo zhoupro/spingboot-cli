@@ -8,6 +8,7 @@ Usage:
   sb.py  deps   add  [<base>]  [<db>] [<kv>] [<mq>]
   sb.py  path   init
   sb.py  main   init
+  sb.py  res    init
 """
 
 from docopt import docopt
@@ -434,6 +435,30 @@ def mainInit(pwd):
     f.write(template.render(packageName=groupId, className= artifactId + "Main"))
     f.close()
 
+def resInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+
+    moduleInfo = getModuleInfo("./pom.xml")
+    artifactId = moduleInfo["artifactId"]
+
+    if not os.path.exists(pwd + "/" + "src/main/resources/bootstrap.yml"):
+        shutil.copy(sb_project + "/" + "temps/resources/bootstrap.yml", pwd + "/" + "src/main/resources/bootstrap.yml")
+    else:
+        print("res already init")
+        return
+
+    from jinja2 import Template
+    bootstrapStr = open(sb_project + "/" + "temps/resources/bootstrap-dev.yml").read()
+    template = Template(bootstrapStr)
+    targetFile = pwd + "/" + "src/main/resources/bootstrap-dev.yml"
+
+    f = open(targetFile, "w")
+    f.write(template.render( artifactId= artifactId))
+    f.close()
+
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
@@ -468,6 +493,9 @@ if __name__ == '__main__':
         if arguments.get("init"):
             mainInit(cmd_root)
 
+    if arguments.get("res"):
+        if arguments.get("init"):
+            resInit(cmd_root)
 
 
 

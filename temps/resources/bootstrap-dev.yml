@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: {{artifactId}}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos:8848
+        namespace:  ebf6d5d2-12aa-4550-b70a-97f8785c9597
+        group: prozhou
+        enabled: true
+      config:
+        server-addr: nacos:8848
+        file-extension: yml
+        namespace:  ebf6d5d2-12aa-4550-b70a-97f8785c9597
+        group: prozhou
