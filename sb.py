@@ -7,6 +7,7 @@ Usage:
   sb.py  module delete <module>
   sb.py  deps   add  [<base>]  [<db>] [<kv>] [<mq>]
   sb.py  path   init
+  sb.py  main   init
 """
 
 from docopt import docopt
@@ -236,6 +237,17 @@ def getProjectInfo(pomxml):
         "artifactId": artifactId.text
     }
 
+def getModuleInfo(pomxml):
+    import xml.etree.ElementTree as ET
+    # 加载POM文件
+    tree = ET.parse(pomxml)
+    root = tree.getroot()
+    artifactId = root.find("{http://maven.apache.org/POM/4.0.0}artifactId")
+    # 获取项目信息
+    return {
+        "artifactId": artifactId.text
+    }
+
 def isProject(pomxml):
     import xml.etree.ElementTree as ET
     # 加载POM文件
@@ -377,8 +389,6 @@ def pathInit(pwd):
 
     projectInfo = getProjectInfo("../pom.xml")
     groupId = projectInfo["groupId"]
-    artifactId = projectInfo["artifactId"]
-
     pathList = ["src/main/java", "src/test/java"]
     groupIdPath = groupId.split(".")
 
@@ -391,13 +401,38 @@ def pathInit(pwd):
 
     pathFullList += [ "src/main/resources",  "src/test/resources" ]
 
-
-
-
     for p in pathFullList:
         if  not os.path.exists(pwd + "/" + p):
             os.makedirs(pwd + "/" + p)
 
+
+def mainInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    groupIdInfo = groupId.split(".")
+
+    moduleInfo = getModuleInfo("./pom.xml")
+    artifactId = moduleInfo["artifactId"]
+
+    artifactId = artifactId.capitalize()
+
+    from jinja2 import Template
+    bootstrapStr = open(sb_project + "/" + "temps/bootstrap.java").read()
+    template = Template(bootstrapStr)
+    print()
+    targetFile = pwd + "/" + "src/main/java"
+    for g in groupIdInfo:
+        targetFile = targetFile + "/" + g
+
+    targetFile = targetFile + "/" + artifactId + "Main.java"
+    f = open(targetFile, "w")
+    f.write(template.render(packageName=groupId, className= artifactId + "Main"))
+    f.close()
 
 
 if __name__ == '__main__':
@@ -428,6 +463,10 @@ if __name__ == '__main__':
     if arguments.get("path"):
         if arguments.get("init"):
             pathInit(cmd_root)
+
+    if arguments.get("main"):
+        if arguments.get("init"):
+            mainInit(cmd_root)
 
 
 
