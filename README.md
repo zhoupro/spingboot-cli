@@ -6,5 +6,6 @@
 - [x] 新增启动类
 - [x] 新增配置文件
 - [x] mybatis-plus-generator 代码生成器
+- [x] mybatis-plus-generator-ui 代码生成器界面
 - [ ] 列出当前模块依赖
 - [ ] 模块新增依赖组
