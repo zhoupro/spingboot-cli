@@ -11,6 +11,7 @@ Usage:
   sb.py  res    init
   sb.py  autogen
   sb.py  advice
+  sb.py  enum
 """
 
 from docopt import docopt
@@ -556,6 +557,30 @@ def adviceInit(pwd):
     f.write(template.render(packageName=groupId))
     f.close()
 
+def enumInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    groupIdInfo = groupId.split(".")
+
+    from jinja2 import Template
+    bootstrapStr = open(sb_project + "/" + "temps/enums/EnumsDemo.java").read()
+    template = Template(bootstrapStr)
+    targetFile = pwd + "/" + "src/main/java"
+    for g in groupIdInfo:
+        targetFile = targetFile + "/" + g
+
+    targetFile = targetFile + "/enums/"
+    os.makedirs(targetFile, exist_ok=True)
+    targetFile = targetFile  + "EnumsDemo.java"
+    f = open(targetFile, "w")
+    f.write(template.render(packageName=groupId))
+    f.close()
+
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
     cmd_root = os.getcwd()
@@ -598,5 +623,7 @@ if __name__ == '__main__':
 
     if arguments.get("advice"):
         adviceInit(cmd_root)
+    if arguments.get("enum"):
+        enumInit(cmd_root)
 
 
