@@ -9,6 +9,7 @@ Usage:
   sb.py  path   init
   sb.py  main   init
   sb.py  res    init
+  sb.py  autogen
 """
 
 from docopt import docopt
@@ -76,10 +77,41 @@ springboot2dependencyManage = [
     },
 
     {
+        "groupId": "mysql",
+        "artifactId": "mysql-connector-java",
+        "version": "8.0.25",
+        "comment": "MySql 驱动, mybatis依赖该包"
+    },
+
+    {
+        "groupId": "org.mybatis",
+        "artifactId": "mybatis",
+        "version": "3.5.11",
+        "comment": "mybatis 核心包"
+    },
+
+    {
         "groupId": "com.baomidou",
         "artifactId": "mybatis-plus-boot-starter",
-        "version": "3.5.3.1"
+        "version": "3.5.3.1",
+        "comment": "mybatis plus 核心包"
     },
+    {
+        "groupId": "com.baomidou",
+        "artifactId": "mybatis-plus-generator",
+        "version": "3.5.3.1",
+        "comment":"mybatis-plus-generator 核心包，CRUD代码生成器"
+    },
+
+    {
+        "groupId": "org.apache.velocity",
+        "artifactId": "velocity-engine-core",
+        "version": "2.3",
+        "comment": "模板引擎， mybatis-plus-generator 依赖"
+    },
+
+
+
 
 
 ]
@@ -121,17 +153,29 @@ springboot2deps = {
 
     "db": [
         {
+            "groupId": "mysql",
+            "artifactId": "mysql-connector-java",
+        },
+
+        {
             "groupId": "org.mybatis",
             "artifactId": "mybatis",
         },
+
         {
-            "groupId": "org.springframework.boot",
-            "artifactId": "spring-boot-starter-jdbc",
+            "groupId": "com.baomidou",
+            "artifactId": "mybatis-plus-boot-starter",
         },
         {
-            "groupId": "mysql",
-            "artifactId": "mysql-connector-java",
-        }
+            "groupId": "com.baomidou",
+            "artifactId": "mybatis-plus-generator",
+        },
+
+        {
+            "groupId": "org.apache.velocity",
+            "artifactId": "velocity-engine-core",
+        },
+
     ],
     "kv": [
          {
@@ -459,6 +503,30 @@ def resInit(pwd):
     f.write(template.render( artifactId= artifactId))
     f.close()
 
+def autoInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    groupIdInfo = groupId.split(".")
+
+
+    from jinja2 import Template
+    bootstrapStr = open(sb_project + "/" + "temps/test/AutoGenTest.java").read()
+    template = Template(bootstrapStr)
+    targetFile = pwd + "/" + "src/test/java"
+    for g in groupIdInfo:
+        targetFile = targetFile + "/" + g
+
+    targetFile = targetFile + "/autogen/"
+    os.makedirs(targetFile, exist_ok=True)
+    targetFile = targetFile  + "AutoGenTest.java"
+    f = open(targetFile, "w")
+    f.write(template.render(packageName=groupId))
+    f.close()
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
@@ -496,6 +564,9 @@ if __name__ == '__main__':
     if arguments.get("res"):
         if arguments.get("init"):
             resInit(cmd_root)
+
+    if arguments.get("autogen"):
+        autoInit(cmd_root)
 
 
 
