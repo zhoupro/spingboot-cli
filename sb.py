@@ -10,6 +10,7 @@ Usage:
   sb.py  main   init
   sb.py  res    init
   sb.py  autogen
+  sb.py  advice
 """
 
 from docopt import docopt
@@ -110,9 +111,12 @@ springboot2dependencyManage = [
         "comment": "模板引擎， mybatis-plus-generator 依赖"
     },
 
-
-
-
+    {
+        "groupId": "cn.hutool",
+        "artifactId": "hutool-all",
+        "version": "5.8.22",
+        "comment": "hutool 核心包"
+    },
 
 ]
 
@@ -528,6 +532,30 @@ def autoInit(pwd):
     f.write(template.render(packageName=groupId))
     f.close()
 
+def adviceInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    groupIdInfo = groupId.split(".")
+
+    from jinja2 import Template
+    bootstrapStr = open(sb_project + "/" + "temps/advice/ExecutionTimeAdvice.java").read()
+    template = Template(bootstrapStr)
+    targetFile = pwd + "/" + "src/main/java"
+    for g in groupIdInfo:
+        targetFile = targetFile + "/" + g
+
+    targetFile = targetFile + "/advice/"
+    os.makedirs(targetFile, exist_ok=True)
+    targetFile = targetFile  + "ExecutionTimeAdvice.java"
+    f = open(targetFile, "w")
+    f.write(template.render(packageName=groupId))
+    f.close()
+
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
     cmd_root = os.getcwd()
@@ -568,5 +596,7 @@ if __name__ == '__main__':
     if arguments.get("autogen"):
         autoInit(cmd_root)
 
+    if arguments.get("advice"):
+        adviceInit(cmd_root)
 
 
