@@ -1,5 +1,6 @@
 package {{packageName}}.advice;
 
+import brave.Tracer;
 import {{packageName}}.enums.ResultCode;
 import {{packageName}}.vo.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +21,9 @@ public class ResponseAdvice  implements ResponseBodyAdvice<Object> {
     @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    private Tracer tracer;
+
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
         return true;
@@ -29,14 +33,20 @@ public class ResponseAdvice  implements ResponseBodyAdvice<Object> {
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response)  {
 
+        String s = tracer.currentSpan().context().traceIdString();
         if (body instanceof Result){
+            ((Result<?>) body).setTraceId(s);
             return body;
         }
 
         if (body instanceof  String){
-            return objectMapper.writeValueAsString(Result.success(ResultCode.RC100.getMessage(),body));
+            Result<Object> success = Result.success(ResultCode.RC100.getMessage(), body);
+            success.setTraceId(s);
+            return objectMapper.writeValueAsString(success);
         }
-        return Result.success(ResultCode.RC100.getMessage(),body);
+        Result<Object> success = Result.success(ResultCode.RC100.getMessage(), body);
+        success.setTraceId(s);
+        return success;
     }
 
 }

@@ -28,6 +28,8 @@ public class Result<T> implements Serializable {
      */
     private long timestamp ;
 
+    private String traceId ;
+
     public Result (){
         this.timestamp = System.currentTimeMillis();
     }

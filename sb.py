@@ -166,6 +166,10 @@ springboot2deps = {
             "artifactId": "spring-boot-starter-log4j2",
         },
 
+        {
+            "groupId": "org.springframework.cloud",
+            "artifactId": "spring-cloud-starter-sleuth",
+        },
 
         {
             "groupId": "org.projectlombok",
