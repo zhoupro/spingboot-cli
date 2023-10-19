@@ -118,6 +118,12 @@ springboot2dependencyManage = [
         "version": "5.8.22",
         "comment": "hutool 核心包"
     },
+    {
+            "groupId": "com.github.davidfantasy",
+            "artifactId": "mybatis-plus-generator-ui",
+            "version": "2.0.5",
+            "comment": "mybatis-plus-generator-ui 核心包"
+    },
 
 ]
 
@@ -137,6 +143,12 @@ springboot2deps = {
         {
             "groupId": "org.springframework.boot",
             "artifactId": "spring-boot-starter-aop",
+            "exclusions": [
+                {
+                    "groupId": "org.springframework.boot",
+                    "artifactId": "spring-boot-starter-logging",
+                }
+            ],
         },
 
         {
@@ -149,11 +161,18 @@ springboot2deps = {
             "artifactId": "spring-cloud-starter-alibaba-nacos-config",
         },
 
+        {
+            "groupId": "org.springframework.boot",
+            "artifactId": "spring-boot-starter-log4j2",
+        },
+
 
         {
             "groupId": "org.projectlombok",
             "artifactId": "lombok",
         },
+
+
     ],
 
     "db": [
@@ -179,6 +198,11 @@ springboot2deps = {
         {
             "groupId": "org.apache.velocity",
             "artifactId": "velocity-engine-core",
+        },
+        {
+            "groupId": "com.github.davidfantasy",
+            "artifactId": "mybatis-plus-generator-ui",
+            "scope": "test",
         },
 
     ],
@@ -216,6 +240,7 @@ def makeProject(groupId, artifactId):
 
     if not os.path.exists("./pom.xml"):
         shutil.copy(sb_project + "/temps/project-pom.xml", "./pom.xml")
+
 
 
     import xml.etree.ElementTree as ET
@@ -337,23 +362,25 @@ def addModuleToProject(moduleName,pwd):
 
 
 def makeModule( artifactId, pwd ):
-    if  os.path.exists(pwd + "/" + artifactId) :
+    if os.path.exists(pwd + "/" + artifactId):
         print(" module exist")
         return
-
     if not isProject(pwd+"/pom.xml"):
         print("current dir is not project")
         return
-
-    addModuleToProject(artifactId, pwd)
+    if not os.path.exists(pwd+"/"+artifactId):
+        addModuleToProject(artifactId, pwd)
 
     targetPath = pwd + "/" +artifactId
     if not os.path.exists(targetPath):
-        os.mkdir(targetPath)
+        os.makedirs(targetPath, exist_ok=True)
     oldPwd = pwd
     os.chdir(artifactId)
+
+
     if not os.path.exists("./pom.xml"):
         shutil.copy(sb_project+ "/temps/module-pom.xml", "./pom.xml")
+
 
     parentInfo = getProjectInfo("../pom.xml")
     parentGroupId = parentInfo.get("groupId")
@@ -424,7 +451,20 @@ def addDepsToModule( addSets ):
             groupId.text = dep.get("groupId")
             artifactId = ET.SubElement(dependency, 'artifactId')
             artifactId.text = dep.get("artifactId")
-            dependencies.insert(0, dependency)
+            if dep.get("scope", None) != None:
+                scope = ET.SubElement(dependency, 'scope')
+                scope.text = dep.get("scope")
+
+            if dep.get("exclusions", None) != None:
+                exclusions = ET.SubElement(dependency, 'exclusions')
+                for e in dep.get("exclusions"):
+                    exclusion = ET.SubElement(exclusions, 'exclusion')
+                    groupId = ET.SubElement(exclusion, 'groupId')
+                    groupId.text = e.get("groupId")
+                    artifactId = ET.SubElement(exclusion, 'artifactId')
+                    artifactId.text = e.get("artifactId")
+
+            dependencies.append( dependency)
 
     if len(depSets) > 0:
         root.insert(3, dependencies)
@@ -492,6 +532,12 @@ def resInit(pwd):
 
     moduleInfo = getModuleInfo("./pom.xml")
     artifactId = moduleInfo["artifactId"]
+
+    if not os.path.exists(pwd + "/src/main/resources/log4j2/log4j2-dev.xml"):
+        print("init log4j2")
+        print(pwd + "/src/main/resources/log4j2/")
+        os.makedirs(pwd + "/src/main/resources/log4j2/", exist_ok=True)
+        shutil.copy(sb_project + "/temps/resources/log4j2/log4j2-dev.xml", pwd + "/src/main/resources/log4j2/log4j2-dev.xml")
 
     if not os.path.exists(pwd + "/" + "src/main/resources/bootstrap.yml"):
         shutil.copy(sb_project + "/" + "temps/resources/bootstrap.yml", pwd + "/" + "src/main/resources/bootstrap.yml")

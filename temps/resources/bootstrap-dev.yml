@@ -18,3 +18,5 @@ spring:
     url: jdbc:mysql://192.168.56.111:3306/test?useUnicode=true&characterEncoding=UTF-8&useSSL=false&autoReconnect=true&serverTimezone=Asia/Shanghai
     username: root
     password: pass
+logging:
+  config: classpath:log4j2/log4j2-${spring.profiles.active}.xml

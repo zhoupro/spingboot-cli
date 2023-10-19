@@ -38,7 +38,7 @@ public class AutoGenTest {
                             .outputDir("./src/main/java"); // 指定输出目录
                 })
                 .packageConfig(builder -> {
-                    builder.parent({{packageName}})
+                    builder.parent("{{packageName}}")
                             .entity("model.entity") //设置entity包名
                             .controller("controller")
                             .mapper("model.mapper")
@@ -60,7 +60,7 @@ public class AutoGenTest {
                 .userName(userName)
                 .password(password)
                 .driverClassName("com.mysql.cj.jdbc.Driver")
-                .basePackage({{packageName}})
+                .basePackage("{{packageName}}")
                 .port(8068)
                 .build();
         MybatisPlusToolsApplication.run(config);
