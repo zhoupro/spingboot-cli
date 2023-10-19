@@ -10,8 +10,8 @@ Usage:
   sb.py  main   init
   sb.py  res    init
   sb.py  autogen
-  sb.py  advice
-  sb.py  enum
+  sb.py  advice time
+  sb.py  jsonres
 """
 
 from docopt import docopt
@@ -557,7 +557,7 @@ def adviceInit(pwd):
     f.write(template.render(packageName=groupId))
     f.close()
 
-def enumInit(pwd):
+def jsonResInit(pwd):
     if not isProject("../pom.xml"):
         print("not in modules")
         return
@@ -567,19 +567,29 @@ def enumInit(pwd):
 
     groupIdInfo = groupId.split(".")
 
-    from jinja2 import Template
-    bootstrapStr = open(sb_project + "/" + "temps/enums/EnumsDemo.java").read()
-    template = Template(bootstrapStr)
-    targetFile = pwd + "/" + "src/main/java"
-    for g in groupIdInfo:
-        targetFile = targetFile + "/" + g
+    fileList = [
+        "advice/GlobalExceptionAdvice.java",
+        "advice/ResponseAdvice.java",
+        "enums/ResultCode.java",
+        "exception/BizException.java",
+        "vo/Result.java"
+    ]
 
-    targetFile = targetFile + "/enums/"
-    os.makedirs(targetFile, exist_ok=True)
-    targetFile = targetFile  + "EnumsDemo.java"
-    f = open(targetFile, "w")
-    f.write(template.render(packageName=groupId))
-    f.close()
+    commonPath = pwd + "/" + "src/main/java"
+    for g in groupIdInfo:
+        commonPath = commonPath + "/" + g
+
+    for f in fileList:
+        fInfo = f.split("/")
+        from jinja2 import Template
+        bootstrapStr = open(sb_project + "/" + "temps/"+ f).read()
+        template = Template(bootstrapStr)
+        targetFile = commonPath + "/"+ fInfo[0] +"/"
+        os.makedirs(targetFile, exist_ok=True)
+        targetFile = targetFile  + fInfo[1]
+        f = open(targetFile, "w")
+        f.write(template.render(packageName=groupId))
+        f.close()
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
@@ -622,8 +632,8 @@ if __name__ == '__main__':
         autoInit(cmd_root)
 
     if arguments.get("advice"):
-        adviceInit(cmd_root)
-    if arguments.get("enum"):
-        enumInit(cmd_root)
+        if arguments.get("time"):
+            adviceInit(cmd_root)
 
-
+    if arguments.get("jsonres"):
+        jsonResInit(cmd_root)
