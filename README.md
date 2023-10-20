@@ -13,4 +13,5 @@
 - [x] 11, traceId
 - [x] 12, 集成jsonschema2pojo， 根据 json 自动生成 dto
 - [x] 13, 模块支持：新增依赖，列出依赖
+- [x] 14, 集成 kafka
 - [ ] 删除模块

@@ -14,6 +14,7 @@ Usage:
   sb.py  advice time
   sb.py  jsonres
   sb.py  json2dto
+  sb.py  mq   kafka  add
 """
 
 from docopt import docopt
@@ -448,7 +449,9 @@ def addDepsToModule( addSets ):
     ET.register_namespace('', ns)
     root = tree.getroot()
     dependencies = root.find("{http://maven.apache.org/POM/4.0.0}dependencies")
+    addFlag = False
     if dependencies == None:
+        addFlag = True
         dependencies = ET.Element('dependencies')
 
     existDepSets = findDepsByPath("dependencies/dependency")
@@ -480,7 +483,8 @@ def addDepsToModule( addSets ):
 
         dependencies.append( dependency)
 
-    if len(depSets) > 0:
+    if len(depSets) > 0 and addFlag:
+
         root.insert(3, dependencies)
 
     pretty_xml(root, '\t', '\n')
@@ -645,6 +649,42 @@ def adviceInit(pwd):
     f.write(template.render(packageName=groupId))
     f.close()
 
+def kafkaInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    groupIdInfo = groupId.split(".")
+
+    # 新增 kafka pom 依赖
+    addSets = {}
+    addSets["mq"] = True
+    addDepsToModule(addSets)
+
+    fileList = [
+        "consumer/Consumer.java",
+        "services/KafkaProcucer.java",
+    ]
+
+    commonPath = pwd + "/" + "src/main/java"
+    for g in groupIdInfo:
+        commonPath = commonPath + "/" + g
+
+    for f in fileList:
+        fInfo = f.split("/")
+        from jinja2 import Template
+        bootstrapStr = open(sb_project + "/" + "temps/"+ f).read()
+        template = Template(bootstrapStr)
+        targetFile = commonPath + "/"+ fInfo[0] +"/"
+        os.makedirs(targetFile, exist_ok=True)
+        targetFile = targetFile  + fInfo[1]
+        f = open(targetFile, "w")
+        f.write(template.render(packageName=groupId))
+        f.close()
+
 def jsonResInit(pwd):
     if not isProject("../pom.xml"):
         print("not in modules")
@@ -679,6 +719,7 @@ def jsonResInit(pwd):
         f = open(targetFile, "w")
         f.write(template.render(packageName=groupId))
         f.close()
+
 
 def jsonDtoInit(pwd):
     if not isProject("../pom.xml"):
@@ -783,3 +824,7 @@ if __name__ == '__main__':
         jsonResInit(cmd_root)
     if arguments.get("json2dto"):
         jsonDtoInit(cmd_root)
+    if arguments.get("mq"):
+        if arguments.get("kafka"):
+            if arguments.get("add"):
+                kafkaInit(cmd_root)

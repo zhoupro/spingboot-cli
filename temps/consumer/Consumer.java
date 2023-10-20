@@ -1,4 +1,4 @@
-package com.yuaiweiwu.consumer;
+package {{packageName}}.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
