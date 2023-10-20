@@ -14,19 +14,19 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = {"{{packageName}}"})
 public class ResponseAdvice  implements ResponseBodyAdvice<Object> {
-
 
     @Autowired
     ObjectMapper objectMapper;
+
 
     @Autowired
     private Tracer tracer;
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return true;
+        return ! returnType.hasMethodAnnotation(NotControllerResponseAdvice.class);
     }
 
     @SneakyThrows

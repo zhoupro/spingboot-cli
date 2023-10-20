@@ -12,6 +12,7 @@ Usage:
   sb.py  autogen
   sb.py  advice time
   sb.py  jsonres
+  sb.py  json2dto
 """
 
 from docopt import docopt
@@ -620,6 +621,7 @@ def jsonResInit(pwd):
     fileList = [
         "advice/GlobalExceptionAdvice.java",
         "advice/ResponseAdvice.java",
+        "advice/NotControllerResponseAdvice.java",
         "enums/ResultCode.java",
         "exception/BizException.java",
         "vo/Result.java"
@@ -640,6 +642,59 @@ def jsonResInit(pwd):
         f = open(targetFile, "w")
         f.write(template.render(packageName=groupId))
         f.close()
+
+def jsonDtoInit(pwd):
+    if not isProject("../pom.xml"):
+        print("not in modules")
+        return
+
+    projectInfo = getProjectInfo("../pom.xml")
+    groupId = projectInfo["groupId"]
+
+    if not os.path.exists(pwd + "/src/main/resources/json2dto"):
+        print("init json2dto")
+        print(pwd + "/src/main/resources/json2dto/")
+        os.makedirs(pwd + "/src/main/resources/json2dto/", exist_ok=True)
+        shutil.copytree(sb_project + "/temps/resources/json2dto", pwd + "/src/main/resources/json2dto", dirs_exist_ok=True)
+
+    xml_string = """
+        <plugin>
+                <groupId>org.jsonschema2pojo</groupId>
+                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <sourceType>json</sourceType>
+                    <sourceDirectory>${{basedir}}/src/main/resources/json2dto</sourceDirectory>
+                    <outputDirectory>${{basedir}}/src/main/java</outputDirectory>
+                    <targetPackage>{packageName}.dto</targetPackage>
+                    <addCompileSourceRoot>true</addCompileSourceRoot>
+                    <annotationStyle>jackson2</annotationStyle>
+                    <serializable>true</serializable>
+                    <useBigDecimals>true</useBigDecimals>
+                    <removeOldOutput>false</removeOldOutput>
+                    <includeToString>false</includeToString>
+                    <includeHashcodeAndEquals>false</includeHashcodeAndEquals>
+                    <includeAdditionalProperties>false</includeAdditionalProperties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+    """
+    xml_string = xml_string.format(packageName = groupId, basedir = "basedir")
+    pluginElement = ET.fromstring(xml_string)
+    tree = ET.parse('pom.xml')
+    ns = "http://maven.apache.org/POM/4.0.0"
+    ET.register_namespace('', ns)
+    root = tree.getroot()
+    plugins = root.find("{http://maven.apache.org/POM/4.0.0}build/{http://maven.apache.org/POM/4.0.0}plugins")
+    plugins.append(pluginElement)
+    pretty_xml(root, '\t', '\n')
+    tree.write('pom.xml', encoding="utf-8", xml_declaration=True)
 
 if __name__ == '__main__':
     arguments = docopt(__doc__.format(filename=os.path.basename(__file__)))
@@ -687,3 +742,5 @@ if __name__ == '__main__':
 
     if arguments.get("jsonres"):
         jsonResInit(cmd_root)
+    if arguments.get("json2dto"):
+        jsonDtoInit(cmd_root)
