@@ -6,6 +6,7 @@ Usage:
   sb.py  project create <groupId> <artifactId>
   sb.py  module delete <module>
   sb.py  deps   add  [<base>]  [<db>] [<kv>] [<mq>]
+  sb.py  deps   list
   sb.py  path   init
   sb.py  main   init
   sb.py  res    init
@@ -449,33 +450,69 @@ def addDepsToModule( addSets ):
     dependencies = root.find("{http://maven.apache.org/POM/4.0.0}dependencies")
     if dependencies == None:
         dependencies = ET.Element('dependencies')
-        for dep in depSets:
-            # dependency
-            dependency =ET.Element('dependency')
-            groupId = ET.SubElement(dependency, 'groupId')
-            groupId.text = dep.get("groupId")
-            artifactId = ET.SubElement(dependency, 'artifactId')
-            artifactId.text = dep.get("artifactId")
-            if dep.get("scope", None) != None:
-                scope = ET.SubElement(dependency, 'scope')
-                scope.text = dep.get("scope")
 
-            if dep.get("exclusions", None) != None:
-                exclusions = ET.SubElement(dependency, 'exclusions')
-                for e in dep.get("exclusions"):
-                    exclusion = ET.SubElement(exclusions, 'exclusion')
-                    groupId = ET.SubElement(exclusion, 'groupId')
-                    groupId.text = e.get("groupId")
-                    artifactId = ET.SubElement(exclusion, 'artifactId')
-                    artifactId.text = e.get("artifactId")
+    existDepSets = findDepsByPath("dependencies/dependency")
+    for dep in depSets:
+        uniqKey = dep.get("groupId") + ":" + dep.get("artifactId")
+        if uniqKey in existDepSets:
+            print( "has added " + uniqKey )
+            continue
+        else:
+            print("is adding " + uniqKey  )
+        # dependency
+        dependency =ET.Element('dependency')
+        groupId = ET.SubElement(dependency, 'groupId')
+        groupId.text = dep.get("groupId")
+        artifactId = ET.SubElement(dependency, 'artifactId')
+        artifactId.text = dep.get("artifactId")
+        if dep.get("scope", None) != None:
+            scope = ET.SubElement(dependency, 'scope')
+            scope.text = dep.get("scope")
 
-            dependencies.append( dependency)
+        if dep.get("exclusions", None) != None:
+            exclusions = ET.SubElement(dependency, 'exclusions')
+            for e in dep.get("exclusions"):
+                exclusion = ET.SubElement(exclusions, 'exclusion')
+                groupId = ET.SubElement(exclusion, 'groupId')
+                groupId.text = e.get("groupId")
+                artifactId = ET.SubElement(exclusion, 'artifactId')
+                artifactId.text = e.get("artifactId")
+
+        dependencies.append( dependency)
 
     if len(depSets) > 0:
         root.insert(3, dependencies)
 
     pretty_xml(root, '\t', '\n')
     tree.write('pom.xml', encoding="utf-8", xml_declaration=True)
+
+def findDepsByPath(findPath):
+    prefix = "{http://maven.apache.org/POM/4.0.0}"
+
+    findPathInfo = findPath.split("/")
+    findFullPath = ""
+    for fp in findPathInfo:
+        findFullPath = findFullPath +  prefix + fp + "/"
+    findFullPath = findFullPath.rstrip("/")
+    import xml.etree.ElementTree as ET
+    # 加载POM文件
+    tree = ET.parse('pom.xml')
+    ns = "http://maven.apache.org/POM/4.0.0"
+    ET.register_namespace('', ns)
+    root = tree.getroot()
+    dependencies = root.findall(findFullPath)
+    depSets = set()
+    if dependencies == None:
+        return depSets
+    for dep in dependencies:
+        depSets.add(dep[0].text + ":" + dep[1].text)
+    return depSets
+
+
+def listDepsOfModule(findPath):
+    depSets=findDepsByPath(findPath)
+    for dep in depSets:
+        print(dep)
 
 def pathInit(pwd):
     if not isProject("../pom.xml"):
@@ -720,6 +757,8 @@ if __name__ == '__main__':
             if arguments.get("<mq>") != None:
                 addSets["mq"] = True
             addDepsToModule(addSets)
+        if arguments.get("list"):
+            listDepsOfModule("dependencies/dependency")
 
     if arguments.get("path"):
         if arguments.get("init"):
